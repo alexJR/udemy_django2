@@ -1,0 +1,39 @@
+=-=-=-=- CURSO DJANGO PYTHON --=-=-=-=-
+
+-- TRABALHANDO COM FORMULÁRIOS NO DJANGO (Sem salvar no banco)
+1º Dentro da aplicação criar um arquivo chamado "forms.py"
+2º Dentro do arquivo criado, importar a biblioteca "from django import forms"
+3º Criar a classe com os campos que serão carregados no formulário
+Ex:
+	from django import forms
+
+	class ContatoForm(forms.Form):
+		nome = forms.CharField(label='Nome', max_length=100)
+		email = forms.EmailField(label='E-mail', max_length=100)
+		assunto = forms.CharField(label='Assunto', max_length=120)
+		mensagem = forms.CharField(label='Mensagem', widget=forms.Textarea()) #Vai ser um campo que tera várias linhas
+		
+4º Configurar o metodo (contato()) dentro da views.py
+--OBS-- O método pode receber tanto um GET quanto um POST,
+Ex:
+	def contato(request):
+		form = ContatoForm(request.POST or None)
+
+		if str(request.POST) == 'POST':
+			if form.is_valid():
+				nome = form.cleaned_data['nome']
+				email = form.cleaned_data['email']
+				assunto = form.cleaned_data['assunto']
+				mensagem = form.cleaned_data['mensagem']
+
+				#TRANTANDO A MENSAGEM
+				messages.success(request, "E-mail enviado com sucesso!")
+			else:
+				messages.error(request, "Erro ao enviar o e-mail")
+		context = {
+			'form': form
+		}
+		
+		return render(request, 'contato.html', context)
+		
+5º Configurar os templates

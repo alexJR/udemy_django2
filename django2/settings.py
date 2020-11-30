@@ -62,7 +62,7 @@ ROOT_URLCONF = 'django2.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ['templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -84,10 +84,10 @@ WSGI_APPLICATION = 'django2.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': BASE_DIR / 'django2',
+        'NAME': 'django2',
         'USER': 'alexjr',
         'PASSWORD': 'xelaajr',
-        'HOST': 'localhost',
+        'HOST': '127.0.0.1',
         'PORT': '3306',
 
     }
