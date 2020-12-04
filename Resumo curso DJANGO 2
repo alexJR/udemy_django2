@@ -257,7 +257,105 @@ Ex:
 			'form': form
 		}
 		return render(request, 'produto.html', context)
+		
+-- APRESENTAÇÃO DOS DADOS DO BANCO NA APLICAÇÃO WEB (COM IMAGENS)
+1º Na view.py da aplicação, fazer o import do modelo cirado, que no nosso casó é o Produto: "from .models import Produto"
+2º Fazer a configuração de metodo aonde será carregado os dados da tabela Produto.
+Ex: 
+	from .models import Produto
 
+	def index(request):
+		context = {
+			'produtos': Produto.objects.all()
+		}
+		return render(request, 'index.html', context)
+		
+3º Configurar o template (Index.html) conforme o método implementado na view.
+Ex: 
+	{% load bootstrap4 %}
+	{% load static %}
+	<!DOCTYPE html>
+	<html lang="pt-br">
+	<head>
+		<meta charset="UTF-8">
+		<title>Index</title>
+		{% bootstrap_css %}
+		<link href="{% static 'css/styles.css' %}" rel="stylesheet">
+	</head>
+	<body>
+		<div class="container">
+			<h1>Produto</h1>
+			<table class="table table-dark">
+				  <thead>
+					<tr>
+					  <th scope="col">#</th>
+					  <th scope="col">Produto</th>
+					  <th scope="col">Preço</th>
+					  <th scope="col">Estoque</th>
+					</tr>
+				  </thead>
+				  <tbody>
+					  {% for produto in produtos %}
+							<tr>
+							  <th scope="row">{{ produto.id }}</th>
+							  <td scope="row"><a href="#modal{{ produto.id }}" data-toggle="modal">{{ produto.nome }}</a></td>
+							  <td scope="row">{{ produto.preco }}</td>
+							  <td scope="row">{{ produto.estoque }}</td>
+							</tr>
+							<div class="modal fade bd-example-modal-lg show" id="modal{{ produto.id }}" role="dialog">
+								<div class="modal-dialog">
+									<div class="modal-content">
+										<div class="modal-header">
+											<button type="button", class="close", data-dismiss="modal">
+												<span aria-hidden="true">&times;</span>
+											</button>
+										</div>
+										<div class="modal-body" id="dynamic-content">
+											<img src="{{ produto.imagem.url }}" class="img-fluid" alt="{{ produto.nome }}"/>
+										</div>
+									</div>
+								</div>
+							</div>
+					  {% endfor %}
+				  </tbody>
+				</table>
+		</div>
+	{% bootstrap_javascript jquery='full' %}
+	</body>
+	</html>
+	
+
+-- TRABALHANDO COM SEÇÕES DO USUÁRIO
+1º No arquivo view.py da aplicação, fazer a importação da biblioteca: "from django.shortcuts import redirect"
+2º No método, fazer a verificação se o usuáio é diferente de anonymous, se for, faz o processo normal, se não, rediciona para a pagina INDEX.
+Ex: 
+	def produto(request):
+		if request.user != 'AnonymousUser':
+			if(request.method) == 'POST':
+				form = ProdutoModelForm(request.POST, request.FILES)
+				if form.is_valid():
+
+					form.save()
+					#prod = form.save(commit=False)
+					#posso mostrar os valores carregados
+					#print(f'Produto: {prod.nome}')
+					#print(f'Preço: {prod.preco}')
+					#print(f'Estoque: {prod.estoque}')
+
+					messages.success(request, 'Produto salvo com sucesso!')
+					form = ProdutoModelForm()
+				else:
+					messages.error(request, 'Erro ao salva o produto!')
+
+			else:
+				form = ProdutoModelForm()
+
+			context = {
+				'form': form
+			}
+			return render(request, 'produto.html', context)
+		else:
+			return redirect('index')
 
 	
 
