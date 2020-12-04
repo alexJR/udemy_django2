@@ -1,0 +1,363 @@
+=-=-=-=- CURSO DJANGO PYTHON --=-=-=-=-
+
+-- TRABALHANDO COM FORMULÁRIOS NO DJANGO (Sem salvar no banco)
+1º Dentro da aplicação criar um arquivo chamado "forms.py"
+2º Dentro do arquivo criado, importar a biblioteca "from django import forms"
+3º Criar a classe com os campos que serão carregados no formulário
+Ex:
+	from django import forms
+
+	class ContatoForm(forms.Form):
+		nome = forms.CharField(label='Nome', max_length=100)
+		email = forms.EmailField(label='E-mail', max_length=100)
+		assunto = forms.CharField(label='Assunto', max_length=120)
+		mensagem = forms.CharField(label='Mensagem', widget=forms.Textarea()) #Vai ser um campo que tera várias linhas
+		
+4º Configurar o metodo (contato()) dentro da views.py
+--OBS-- O método pode receber tanto um GET quanto um POST,
+Ex:
+	def contato(request):
+		form = ContatoForm(request.POST or None)
+
+		if str(request.POST) == 'POST':
+			if form.is_valid():
+				nome = form.cleaned_data['nome']
+				email = form.cleaned_data['email']
+				assunto = form.cleaned_data['assunto']
+				mensagem = form.cleaned_data['mensagem']
+
+				#TRANTANDO A MENSAGEM
+				messages.success(request, "E-mail enviado com sucesso!")
+			else:
+				messages.error(request, "Erro ao enviar o e-mail")
+		context = {
+			'form': form
+		}
+		
+		return render(request, 'contato.html', context)
+		
+5º Configurar os templates
+
+
+-- ENVIADO E-MAILS COM O DJANGO
+--obs-- Como não temos um servidor de e-mail, vamos configurar uma simulação de envio, mas também já ficará configurando para quando possuir um servidor de email válido.
+1º #USAR PARA SIMULAR# No arquivo setting do projeto, registrar a variável:  
+	EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+1º #USAR QUANDO SE TEM SERVIDOR DE EMAIL# No arquivo setting do projeto, registrar a variáveis:
+	EMAIL_HOST = 'localhost'
+	EMAIL_HOST_USER = 'no-reply@seudominio.com.br'
+	EMAIL_PORT = 587
+	EMAIL_USER_TSL = True
+	EMAIL_HOST_PASSWORD = 'sua senha'
+--OBS-- Caso utilizar o o servidor de email, comentar a linha da SIMULAÇÃO
+2º No form.py da aplicação importar a biblioteca: "from django.core.mail.message import EmailMessage"
+3º Criar o método send_email() para envio de e-mail dentro da classe ContatoForm()
+Ex:
+	from django import forms
+	from django.core.mail.message import EmailMessage
+
+	class ContatoForm(forms.Form):
+		nome = forms.CharField(label='Nome', max_length=100)
+		email = forms.EmailField(label='E-mail', max_length=100)
+		assunto = forms.CharField(label='Assunto', max_length=120)
+		mensagem = forms.CharField(label='Mensagem', widget=forms.Textarea()) #Vai ser um campo que tera várias linhas
+
+		def send_email(self):
+			nome = self.cleaned_data['nome']
+			email = self.cleaned_data['email']
+			assunto = self.cleaned_data['assunto']
+			mensagem = self.cleaned_data['mensagem']
+
+			conteudo = f'Nome: {nome}\nE-mail: {email}\nAssunto: {assunto}\nMensagem: {mensagem}\n'
+
+			mail = EmailMessage(
+				subject='E-mail enviado pelo sistema django2', #Aplicação que envio o email
+				body=conteudo, # Corpo do email
+				from_email='alex@hotmail.com', # para quem será enviado o email
+				to=['contato@seudominio.com.br',],# Esse atributo deve estar em uma lista, pois pode ser enviado para mais de um e-mail (Geralmente é o mesmo do from_email)
+				headers={'Reply-To': email} # Caso for respondido, quem receberá o email. Nesse exemplo, o prórpio cliente que o enviou 
+			)
+			mail.send()
+			
+4º Com o passo 3º feito, na view, no metodo contato, pode ser excluido essa parte do comando:
+			nome = form.cleaned_data['nome']
+			email = form.cleaned_data['email']
+			assunto = form.cleaned_data['assunto']
+			mensagem = form.cleaned_data['mensagem']
+			....
+			
+5º Depois de feito o passo 4º incluir o metodo criado no form "form.send_email()" no lugar do comando que foi excluido no passo 4º.
+
+
+-- CONFIGURANDO O MODELS PARA PERSISTENCIA DE DADOS NO BANCO COM IMAGENS
+1º Importar as bibliotecas que serão necessárias:
+	from django.db import models
+	from stdimage.models import StdImageField  #PARA TRABALHAR COM IMAGENS
+
+	#SIGNALS
+	from django.db.models import signals #É UMA BIBLITECA QUE EXECUTA PROCESSOS ANTES OU DEPOIS DA INSERÇÃO, É COMO SE FOSSE UMA TRIGGER NO BANCO DE DADOS
+	from django.template.defaultfilters import slugify #FORMATA CARACTERES POR EXEMPLO "Alex Junior Rampanelli" para "alex-junior-rampanelli"
+	
+2º criar modelo de dados
+Ex:
+	from django.db import models
+	from stdimage.models import StdImageField
+
+	#SIGNALS
+	from django.db.models import signals
+	from django.template.defaultfilters import slugify
+
+
+	class Base(models.Model):
+		criacao = models.DateField('Data de Criação', auto_now_add=True)
+		atualizacao = models.DateField('Data de Atualização', auto_now=True)
+		ativo = models.BooleanField('status', default=True)
+
+		class Meta:
+			abstract = True
+
+
+	class Produto(Base):
+		nome = models.CharField('Nome', max_length=100)
+		preco = models.DecimalField('Preço', max_digits=8, decimal_places=2)
+		estoque = models.IntegerField('Estoque')
+		imagem = StdImageField('Imagem', upload_to='produtos', variations={'thumb': (124, 124)})
+		slug = models.SlugField('Slug', max_length=100, blank=True, editable=False)
+
+		def __str__(self):
+			return self.nome
+
+	# AQUI EU DEFINO QUE ANTES DE SALVAR, EU DEVO TRANSFORMAR O DADO EM SLUG
+	def produto_pre_save(signal, instance, sender, **kwargs):
+		instance.slug = slugify(instance.nome)
+
+	# QUANDO O PRODUTO FOR SALVO (sender=Produto), executa esse metodo.
+	signals.pre_save.connect(produto_pre_save, sender=Produto)
+	
+3º Executar "python manage.py makemigrations" para criar o modelo no banco e por fim criar a migração com "python manage.py migrate"
+
+4º COnfigurar a página do admin usando o decoration
+Ex:
+	from django.contrib import admin
+	from .models import Produto
+
+	@admin.register(Produto)
+	class ProdutoAdmin(admin.ModelAdmin):
+		list_display = ('nome', 'preco', 'estoque', 'slug', 'criacao', 'atualizacao', 'ativo')
+
+5º Criar o super usuário para acessar a pagina do admin "python manage.py createsuperuser"
+
+
+-- IMPLEMENTANDO MODELFORMS EM DJANGO
+1º Em forms.py da aplicação importar os modelos e criar a classe
+Ex:
+	from .models import Produto
+	
+	class ProdutoModelForm(forms.ModelForm):
+    class Meta:
+        model = Produto
+        fields = {'nome', 'preco', 'estoque', 'imagem'}
+	
+2º Em view.py no arquivo da aplicação, importar o modelo criado com ModelForms e criar o método
+Ex:
+	from .forms import ProdutoModelForm
+	
+	def produto(request):
+		# caso ele clicar no botão de salvar, vai gerar um POST e executar essa parte
+		if(request.method) == 'POST':
+			form = ProdutoModelForm(request.POST, request.FILES)
+			if form.is_valid():
+				prod = form.save(commit=False)
+
+				#posso mostrar os valores carregados
+				print(f'Produto {prod.nome}')
+				print(f'Produto {prod.preco}')
+				print(f'Produto {prod.estoque}')
+				
+				messages.success(request, 'Produto salvo com sucesso!')
+				form = ProdutoModelForm()
+			else:
+				messages.error(request, 'Erro ao salva o produto!')
+				
+		# Se não for POST, ou seja, só abrir a tela, vai apenas gerar um novo formulário para preencher
+		else:
+			form = ProdutoModelForm()
+
+		context = {
+			'form': form
+		}
+		return render(request, 'produto.html', context)
+		
+3º No template implementar os métodos criados na view.py
+Ex:
+	{% load bootstrap4 %}
+	<!DOCTYPE html>
+	<html lang="pt-br">
+	<head>
+		<meta charset="UTF-8">
+		<title>Produto</title>
+		{% bootstrap_css %}
+	</head>
+	<body>
+		<div class="container">
+			<h1>Produto</h1>
+			{% bootstrap_messages %}
+			<form action="{% url 'produto' %}" method="post", class="form", autocomplete="off", enctype="multipart/form-data">
+				{% csrf_token %} <!-- Vai criar um TOKEN, sem ele o python vai dar erro no formulário, por questão de segurança -->
+
+				{% bootstrap_form form %} <!-- Vai pegar o form lá do view.py e inserir o css do bootstrap nele-->
+				{% buttons %}
+					<button type="submit", class="btn btn-primary">Salvar</button>
+				{% endbuttons %}
+
+			</form>
+		</div>
+	{% bootstrap_javascript jquery='full' %}
+	</body>
+	</html>
+	
+	
+-- SALVANDO MODELFORM NO BANCO DE DADOS
+1º Nas configurações (settings.py) do projeto criar mais duas variáveis:
+	MEDIA_URL = 'media/'  # utiliza para quando o projeto estiver local
+	MEDIA_ROOT = os.path.join(BASE_DIR, 'media') #Quando fazer o deploy do projeto, as medias da pasta media local, serão enviadospara a pasta media do servidor do site.
+	
+2º No arquivo de urls.py do PROJETO, fazer as seguintes importações:
+	"from django.conf.urls.static import static"
+	"from django.conf import settings"
+	--obs-- são bibliotecas utilizadas para fazer acesso aos arquivos de media.
+	
+3º Concatenar a configuração do urlpatterns = []. É como se fosse criar mais uma rota, mas dessa forma fica mais simples.
+Ex:
+	urlpatterns = [
+		path('admin/', admin.site.urls),
+		path('', include('core.urls'))
+	] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) #essa parte foi concatenada
+
+
+4º Fazer a configuração do arquivo view.py no metodo produto para não mais mostrar no terminal o resultado, e sim salvar no banco de dados.
+Ex:
+	def produto(request):
+
+		if(request.method) == 'POST':
+			form = ProdutoModelForm(request.POST, request.FILES)
+			if form.is_valid():
+
+				form.save() #inserido
+
+				messages.success(request, 'Produto salvo com sucesso!')
+				form = ProdutoModelForm()
+			else:
+				messages.error(request, 'Erro ao salva o produto!')
+
+		else:
+			form = ProdutoModelForm()
+
+		context = {
+			'form': form
+		}
+		return render(request, 'produto.html', context)
+		
+-- APRESENTAÇÃO DOS DADOS DO BANCO NA APLICAÇÃO WEB (COM IMAGENS)
+1º Na view.py da aplicação, fazer o import do modelo cirado, que no nosso casó é o Produto: "from .models import Produto"
+2º Fazer a configuração de metodo aonde será carregado os dados da tabela Produto.
+Ex: 
+	from .models import Produto
+
+	def index(request):
+		context = {
+			'produtos': Produto.objects.all()
+		}
+		return render(request, 'index.html', context)
+		
+3º Configurar o template (Index.html) conforme o método implementado na view.
+Ex: 
+	{% load bootstrap4 %}
+	{% load static %}
+	<!DOCTYPE html>
+	<html lang="pt-br">
+	<head>
+		<meta charset="UTF-8">
+		<title>Index</title>
+		{% bootstrap_css %}
+		<link href="{% static 'css/styles.css' %}" rel="stylesheet">
+	</head>
+	<body>
+		<div class="container">
+			<h1>Produto</h1>
+			<table class="table table-dark">
+				  <thead>
+					<tr>
+					  <th scope="col">#</th>
+					  <th scope="col">Produto</th>
+					  <th scope="col">Preço</th>
+					  <th scope="col">Estoque</th>
+					</tr>
+				  </thead>
+				  <tbody>
+					  {% for produto in produtos %}
+							<tr>
+							  <th scope="row">{{ produto.id }}</th>
+							  <td scope="row"><a href="#modal{{ produto.id }}" data-toggle="modal">{{ produto.nome }}</a></td>
+							  <td scope="row">{{ produto.preco }}</td>
+							  <td scope="row">{{ produto.estoque }}</td>
+							</tr>
+							<div class="modal fade bd-example-modal-lg show" id="modal{{ produto.id }}" role="dialog">
+								<div class="modal-dialog">
+									<div class="modal-content">
+										<div class="modal-header">
+											<button type="button", class="close", data-dismiss="modal">
+												<span aria-hidden="true">&times;</span>
+											</button>
+										</div>
+										<div class="modal-body" id="dynamic-content">
+											<img src="{{ produto.imagem.url }}" class="img-fluid" alt="{{ produto.nome }}"/>
+										</div>
+									</div>
+								</div>
+							</div>
+					  {% endfor %}
+				  </tbody>
+				</table>
+		</div>
+	{% bootstrap_javascript jquery='full' %}
+	</body>
+	</html>
+	
+
+-- TRABALHANDO COM SEÇÕES DO USUÁRIO
+1º No arquivo view.py da aplicação, fazer a importação da biblioteca: "from django.shortcuts import redirect"
+2º No método, fazer a verificação se o usuáio é diferente de anonymous, se for, faz o processo normal, se não, rediciona para a pagina INDEX.
+Ex: 
+	def produto(request):
+		if request.user != 'AnonymousUser':
+			if(request.method) == 'POST':
+				form = ProdutoModelForm(request.POST, request.FILES)
+				if form.is_valid():
+
+					form.save()
+					#prod = form.save(commit=False)
+					#posso mostrar os valores carregados
+					#print(f'Produto: {prod.nome}')
+					#print(f'Preço: {prod.preco}')
+					#print(f'Estoque: {prod.estoque}')
+
+					messages.success(request, 'Produto salvo com sucesso!')
+					form = ProdutoModelForm()
+				else:
+					messages.error(request, 'Erro ao salva o produto!')
+
+			else:
+				form = ProdutoModelForm()
+
+			context = {
+				'form': form
+			}
+			return render(request, 'produto.html', context)
+		else:
+			return redirect('index')
+
+	
+
+
+
