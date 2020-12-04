@@ -132,3 +132,19 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# CONFIGURAÇÃO DE ENVIO DE EMAIL
+
+#1º #USAR PARA SIMULAR#
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+"""
+#1º #USAR QUANDO SE TEM SERVIDOR DE EMAIL# 
+EMAIL_HOST = 'localhost'
+EMAIL_HOST_USER = 'no-reply@seudominio.com.br'
+EMAIL_PORT = 587
+EMAIL_USER_TSL = True
+EMAIL_HOST_PASSWORD = 'sua senha'
+"""

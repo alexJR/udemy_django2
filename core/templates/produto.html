@@ -1,12 +1,25 @@
+{% load bootstrap4 %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <title>Produto</title>
+    {% bootstrap_css %}
 </head>
 <body>
+    <div class="container">
+        <h1>Produto</h1>
+        {% bootstrap_messages %}
+        <form action="{% url 'produto' %}" method="post", class="form", autocomplete="off", enctype="multipart/form-data">
+            {% csrf_token %} <!-- Vai criar um TOKEN, sem ele o python vai dar erro no formulário, por questão de segurança -->
 
-    <h1>Produto</h1>
+            {% bootstrap_form form %} <!-- Vai pegar o form lá do view.py e inserir o css do bootstrap nele-->
+            {% buttons %}
+                <button type="submit", class="btn btn-primary">Salvar</button>
+            {% endbuttons %}
 
+        </form>
+    </div>
+{% bootstrap_javascript jquery='full' %}
 </body>
 </html>

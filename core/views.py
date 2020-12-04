@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .forms import ContatoForm
+from .forms import ContatoForm, ProdutoModelForm
 from django.contrib import messages
 
 def index(request):
@@ -11,16 +11,7 @@ def contato(request):
 
     if str(request.method) == 'POST':
         if form.is_valid():
-            nome = form.cleaned_data['nome']
-            email = form.cleaned_data['email']
-            assunto = form.cleaned_data['assunto']
-            mensagem = form.cleaned_data['mensagem']
-
-            print(nome)
-            print(email)
-            print(assunto)
-            print(mensagem)
-
+            form.send_email()
             #TRANTANDO A MENSAGEM
             messages.success(request, "E-mail enviado com sucesso!")
         else:
@@ -33,4 +24,28 @@ def contato(request):
 
 
 def produto(request):
-    return render(request, 'produto.html')
+
+    if(request.method) == 'POST':
+        form = ProdutoModelForm(request.POST, request.FILES)
+        if form.is_valid():
+
+            form.save()
+            #prod = form.save(commit=False)
+            #posso mostrar os valores carregados
+            #print(f'Produto: {prod.nome}')
+            #print(f'Preço: {prod.preco}')
+            #print(f'Estoque: {prod.estoque}')
+
+            messages.success(request, 'Produto salvo com sucesso!')
+            form = ProdutoModelForm()
+        else:
+            messages.error(request, 'Erro ao salva o produto!')
+
+    else:
+        form = ProdutoModelForm()
+
+    context = {
+        'form': form
+    }
+    return render(request, 'produto.html', context)
+
